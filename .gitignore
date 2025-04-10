@@ -21,7 +21,7 @@ var/
 *.egg-info/
 .installed.cfg
 *.egg
-*.json
+data/
 
 # Virtual Environment
 venv/
