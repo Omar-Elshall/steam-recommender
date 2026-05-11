@@ -57,11 +57,27 @@ def load_user2game():
 
 @st.cache_data
 def load_game_metadata():
+    """Load `data/steam_games.json` — Python-repr-formatted, one row per line.
+
+    Each line is a Python dict literal (single-quoted, sometimes with `u''` prefix),
+    not valid JSON. We use ast.literal_eval rather than json.loads.
+    """
+    import ast
+
     p = Path("data/steam_games.json")
     if not p.exists():
         return pd.DataFrame()
-    df = pd.read_json(p, lines=True)
-    return df
+    records = []
+    with open(p, "r", encoding="utf-8") as f:
+        for line in f:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                records.append(ast.literal_eval(line))
+            except (ValueError, SyntaxError):
+                continue
+    return pd.DataFrame.from_records(records)
 
 
 def has_artifact(name: str) -> bool:
