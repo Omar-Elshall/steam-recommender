@@ -127,9 +127,7 @@ with tab_recs:
             recs = []
             try:
                 if algorithm == "Non-personalized (Popularity)":
-                    from processing.non_personalized_trending import (  # type: ignore
-                        get_trending_recommendations,
-                    )
+                    from processing.utils import get_trending_recommendations  # type: ignore
                     recs = get_trending_recommendations(top_n)
                 elif algorithm == "User-based Collaborative Filtering":
                     from processing.utils import get_user_based_cf_recommendations  # type: ignore
@@ -138,8 +136,14 @@ with tab_recs:
                     from processing.utils import get_item_based_cf_recommendations  # type: ignore
                     recs = get_item_based_cf_recommendations(user_id, top_n)
                 elif algorithm == "Content-based Filtering (TF-IDF)":
+                    # Content-based needs a SEED game (not a user); pick the first owned game
                     from processing.utils import get_content_based_recommendations  # type: ignore
-                    recs = get_content_based_recommendations(user_id, top_n)
+                    seed = (user2game.get(user_id) or [None])[0]
+                    if seed is None:
+                        recs = []
+                    else:
+                        st.caption(f"Seed game (first owned): `{seed}`")
+                        recs = get_content_based_recommendations(seed, top_n)
                 elif algorithm == "ALS Matrix Factorization (NumPy/CuPy)":
                     if not has_artifact("U_matrix.pkl"):
                         st.warning("ALS model not trained yet. Run `python main.py` and choose ALS training.")
