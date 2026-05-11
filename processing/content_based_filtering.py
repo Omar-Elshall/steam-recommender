@@ -3,7 +3,10 @@ import pandas as pd
 import numpy as np
 import ast
 import time
-import cupy as cp
+try:
+    import cupy as cp
+except ImportError:
+    import numpy as cp  # CPU fallback when cupy/CUDA unavailable
 
 def process_game_tags():
     """

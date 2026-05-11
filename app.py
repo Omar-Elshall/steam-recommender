@@ -15,8 +15,15 @@ Run with: streamlit run app.py
 """
 
 import os
+import sys
 import pickle
 from pathlib import Path
+
+# Make the processing/ package importable both as `processing.xxx` and bare `xxx`
+# (the original code uses `from config import config` etc. which depends on cwd)
+ROOT = Path(__file__).parent
+sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "processing"))
 
 import pandas as pd
 import streamlit as st

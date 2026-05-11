@@ -4,7 +4,10 @@ import pickle
 import math
 import time
 import os
-import cupy as cp
+try:
+    import cupy as cp
+except ImportError:
+    import numpy as cp  # CPU fallback when cupy/CUDA unavailable
 
 def load_data():
     """Load data and create dictionaries"""

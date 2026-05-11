@@ -1,7 +1,10 @@
 import numpy as np
 import pandas as pd
 import os
-import cupy as cp
+try:
+    import cupy as cp
+except ImportError:
+    import numpy as cp  # CPU fallback when cupy/CUDA unavailable
 import pickle
 import time
 import ast
