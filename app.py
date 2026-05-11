@@ -182,19 +182,46 @@ with tab_recs:
             except Exception as e:
                 st.error(f"Error generating recommendations: {e}")
 
-        if recs:
+        # Normalize: the underlying functions return mixed shapes — DataFrame, list[tuple], list[str], or None.
+        # Convert to a uniform list[(game_id, score|None)] for downstream display.
+        def _normalize(r):
+            if r is None:
+                return []
+            if isinstance(r, pd.DataFrame):
+                if r.empty:
+                    return []
+                # Try common column patterns
+                id_col = next((c for c in ("game_id", "id", "item", "item_id") if c in r.columns), r.columns[0])
+                score_col = next((c for c in ("score", "rating", "prediction", "similarity") if c in r.columns), None)
+                if score_col:
+                    return list(zip(r[id_col].astype(str).tolist(), r[score_col].astype(float).tolist()))
+                return [(str(v), None) for v in r[id_col].tolist()]
+            if isinstance(r, dict):
+                return [(str(k), float(v)) for k, v in r.items()]
+            # Assume list-like
+            out = []
+            for item in r:
+                if isinstance(item, tuple) and len(item) >= 2:
+                    out.append((str(item[0]), float(item[1]) if item[1] is not None else None))
+                elif isinstance(item, (list, tuple)) and len(item) == 1:
+                    out.append((str(item[0]), None))
+                else:
+                    out.append((str(item), None))
+            return out
+
+        recs_norm = _normalize(recs)
+        if recs_norm:
             games_df = load_game_metadata()
             rows = []
-            for rank, item in enumerate(recs, 1):
-                if isinstance(item, tuple):
-                    game_id, score = item
-                else:
-                    game_id, score = item, None
+            for rank, (game_id, score) in enumerate(recs_norm, 1):
                 title = ""
                 if not games_df.empty and "id" in games_df.columns:
-                    match = games_df[games_df["id"] == game_id]
-                    if not match.empty:
-                        title = match.iloc[0].get("app_name", "")
+                    try:
+                        match = games_df[games_df["id"].astype(str) == game_id]
+                        if not match.empty:
+                            title = match.iloc[0].get("app_name", "") or ""
+                    except Exception:
+                        pass
                 rows.append({
                     "Rank": rank,
                     "Game ID": game_id,
@@ -202,6 +229,8 @@ with tab_recs:
                     "Score": f"{score:.4f}" if score is not None else "",
                 })
             st.dataframe(pd.DataFrame(rows), use_container_width=True, hide_index=True)
+        elif recs is not None:
+            st.info("Recommendation function returned an empty result.")
 
 
 with tab_eval:
